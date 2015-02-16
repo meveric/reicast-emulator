@@ -128,17 +128,17 @@ void plugins_Reset(bool Manual)
 	//libExtDevice_Reset(Manual);
 }
 
+#if !defined(HOST_NO_WEBUI)
 
 void* webui_th(void* p)
 {
-	#if (HOST_OS == OS_WINDOWS || HOST_OS == OS_LINUX)  && !defined(TARGET_PANDORA)
-		webui_start();
-	#endif
+	webui_start();
 
 	return 0;
 }
 
 cThread webui_thd(&webui_th,0);
+#endif
 
 int dc_init(int argc,wchar* argv[])
 {
@@ -151,7 +151,9 @@ int dc_init(int argc,wchar* argv[])
 		return -1;
 	}
 
+#if !defined(HOST_NO_WEBUI)
 	webui_thd.Start();
+#endif
 
 	if(ParseCommandLine(argc,argv))
 	{
@@ -162,6 +164,7 @@ int dc_init(int argc,wchar* argv[])
 		msgboxf("Unable to open config file",MBX_ICONERROR);
 		return -4;
 	}
+
 	LoadSettings();
 #ifndef _ANDROID
 	os_CreateWindow();
@@ -187,7 +190,7 @@ int dc_init(int argc,wchar* argv[])
 		Get_Sh4Interpreter(&sh4_cpu);
 		printf("Using Interpreter\n");
 	}
-	
+
 	  void InitAudio();
   InitAudio();
 
@@ -195,7 +198,7 @@ int dc_init(int argc,wchar* argv[])
 	mem_Init();
 
 	plugins_Init();
-	
+
 	mem_map_default();
 
 	mcfg_CreateDevices();
@@ -205,13 +208,24 @@ int dc_init(int argc,wchar* argv[])
 	
 
 	sh4_cpu.Reset(false);
-	
+
 	return rv;
 }
 
+#if defined(HOST_EMSCRIPTEN)
+#include <emscripten.h>
+#endif
+
+void emmain() {
+	sh4_cpu.Run();
+}
 void dc_run()
 {
-	sh4_cpu.Run();
+#if defined(HOST_EMSCRIPTEN)
+	emscripten_set_main_loop(&emmain, 100, false);
+#else
+	for(;;) emmain();
+#endif
 }
 
 void dc_term()

@@ -30,7 +30,7 @@
 
 #endif
 
-#if !defined(ANDROID)
+#if !defined(ANDROID) && 0
 	#include <linux/joystick.h>
 	#include <sys/stat.h> 
 	#include <sys/types.h> 
@@ -139,7 +139,7 @@ void SetupInput()
 		rt[port]=0;
 		lt[port]=0;
 	}
-
+#if 0
 	if (true) {
 		#ifdef TARGET_PANDORA
 		const char* device = "/dev/input/event4";
@@ -187,8 +187,10 @@ void SetupInput()
 			printf("Using Xbox 360 map\n");
 		}
 	}
+#endif
 }
 
+#if 0
 bool HandleKb(u32 port) {
 	struct input_event ie;
 	if (kbfd < 0)
@@ -377,6 +379,7 @@ bool HandleJoystick(u32 port)
 	  return true;
 }
 
+#endif
 extern bool KillTex;
 
 #ifdef TARGET_PANDORA
@@ -412,8 +415,8 @@ void UpdateInputState(u32 port)
 	lt[port]=0;
 	
 #if defined(TARGET_GCW0) || defined(TARGET_PANDORA)
-	HandleJoystick(port);
-	HandleKb(port);
+	//HandleJoystick(port);
+	//HandleKb(port);
 return;
 #endif
 	for(;;)
@@ -715,7 +718,7 @@ int main(int argc, wchar* argv[])
 	//if (argc==2) 
 		//ndcid=atoi(argv[1]);
 
-	if (setup_curses() < 0) die("failed to setup curses!\n");
+	if (setup_curses() < 0) printf("failed to setup curses!\n");
 #ifdef TARGET_PANDORA
 	signal(SIGSEGV, clean_exit);
 	signal(SIGKILL, clean_exit);
@@ -728,7 +731,7 @@ int main(int argc, wchar* argv[])
 	if(home.c_str())
 	{
 		home += "/.reicast";
-		mkdir(home.c_str(), 0755); // create the directory if missing
+		//mkdir(home.c_str(), 0755); // create the directory if missing
 		SetHomeDir(home);
 	}
 	else
@@ -746,6 +749,8 @@ int main(int argc, wchar* argv[])
 	settings.profile.run_counts=0;
 		
 	dc_init(argc,argv);
+
+	printf("Starting the magic\n");
 
 	dc_run();
 	
@@ -771,5 +776,7 @@ int push_vmu_screen(u8* buffer) { return 0; }
 
 void os_DebugBreak()
 {
-    raise(SIGTRAP);
+//    raise(SIGTRAP);
+	printf("DEBUGBREAK!");
+	exit(-1);
 }

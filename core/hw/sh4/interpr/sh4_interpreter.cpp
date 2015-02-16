@@ -38,7 +38,8 @@ void Sh4_int_Run()
 
 	s32 l=SH4_TIMESLICE;
 
-	do
+//	do
+	for (int i=0; i<10000; i++)
 	{
 		do
 		{
@@ -51,9 +52,9 @@ void Sh4_int_Run()
 		l+=SH4_TIMESLICE;
 		UpdateSystem_INTC();
 
-	} while(sh4_int_bCpuRun);
+	}// while(sh4_int_bCpuRun);
 
-	sh4_int_bCpuRun=false;
+	//sh4_int_bCpuRun=false;
 }
 
 void Sh4_int_Stop()
