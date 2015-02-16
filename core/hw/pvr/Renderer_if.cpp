@@ -79,13 +79,18 @@ bool rend_single_frame()
 	//wait render start only if no frame pending
 	do
 	{
+#if !defined(HOST_NO_THREADS)
 		rs.Wait();
+#endif
 		_pvrrc = DequeueRender();
 	}
 	while (!_pvrrc);
 
 	bool proc = renderer->Process(_pvrrc);
+
+#if !defined(HOST_NO_THREADS)
 	re.Set();
+#endif
 	
 	bool do_swp = proc && renderer->Render();
 		
@@ -136,13 +141,14 @@ void* rend_thread(void* p)
 
 	for(;;)
 	{
-		if (rend_single_frame())
-			renderer->Present();
+			if (rend_single_frame())
+				renderer->Present();
 	}
 }
 
+#if !defined(HOST_NO_THREADS)
 cThread rthd(rend_thread,0);
-
+#endif
 
 bool pend_rend = false;
 
@@ -181,7 +187,12 @@ void rend_start_render()
 #endif
 			if (QueueRender(ctx))  {
 				palette_update();
+#if !defined(HOST_NO_THREADS)
+
 				rs.Set();
+#else
+				rend_single_frame();
+#endif
 				pend_rend = true;
 			}
 		}
@@ -197,14 +208,19 @@ void rend_start_render()
 
 void rend_end_render()
 {
-#if 1 //also disabled the printf, it takes quite some time ...
-	#if HOST_OS!=OS_WINDOWS && !(defined(_ANDROID) || defined(TARGET_PANDORA))
+#if 0 //also disabled the printf, it takes quite some time ...
+	#if HOST_OS!=OS_WINDOWS && !(defined(_ANDROID) || defined(TARGET_PANDORA)) && !defined(HOST_NO_THREADS)
 		if (!re.state) printf("Render > Extended time slice ...\n");
 	#endif
 #endif
 
-	if (pend_rend)
+	if (pend_rend) {
+#if !defined(HOST_NO_THREADS)
 		re.Wait();
+#else
+		renderer->Present();
+#endif
+	}
 }
 
 /*
@@ -233,8 +249,14 @@ bool rend_init()
 
 #endif
 
-#if !defined(_ANDROID)
-	rthd.Start();
+#if !defined(_ANDROID) 
+	#if !defined(HOST_NO_THREADS)
+		rthd.Start();
+	#else
+		if (!renderer->Init()) die("rend->init() failed\n");
+
+		renderer->Resize(640, 480);
+	#endif
 #endif
 
 #if SET_AFNT
