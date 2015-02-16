@@ -52,6 +52,7 @@ struct sigcontext uc_mcontext;
 
 #include "hw/sh4/dyna/ngen.h"
 
+#if defined(HOST_NO_EXCEPTIONS)
 u32* ngen_readm_fail_v2(u32* ptr,u32* regs,u32 saddr);
 bool VramLockedWrite(u8* address);
 bool BM_LockedWrite(u8* address);
@@ -80,17 +81,21 @@ void fault_handler (int sn, siginfo_t * si, void *ctxr)
 		signal(SIGSEGV, SIG_DFL);
 	}
 }
+#endif
 
 void install_fault_handler (void)
 {
+#if defined(HOST_NO_EXCEPTIONS)
 	struct sigaction act, segv_oact;
 	memset(&act, 0, sizeof(act));
 	act.sa_sigaction = fault_handler;
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGSEGV, &act, &segv_oact);
+#endif
 }
 
+#if !defined(HOST_NO_THREADS)
 
 //Thread class
 cThread::cThread(ThreadEntryFP* function,void* prm)
@@ -110,14 +115,15 @@ void cThread::WaitToEnd()
 }
 
 //End thread class
+#endif
 
 //cResetEvent Calss
 cResetEvent::cResetEvent(bool State,bool Auto)
 {
 	//sem_init((sem_t*)hEvent, 0, State?1:0);
 	verify(State==false&&Auto==true);
-	mutx = PTHREAD_MUTEX_INITIALIZER;
-	cond = PTHREAD_COND_INITIALIZER;
+	pthread_mutex_init(&mutx, NULL);
+	pthread_cond_init(&cond, NULL);
 }
 cResetEvent::~cResetEvent()
 {

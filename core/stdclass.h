@@ -163,6 +163,7 @@ public:
 //Windoze code
 //Threads
 
+#if !defined(HOST_NO_THREADS)
 typedef  void* ThreadEntryFP(void* param);
 
 typedef void* THREADHANDLE;
@@ -179,7 +180,7 @@ public :
 	void Start();
 	void WaitToEnd();
 };
-
+#endif
 //Wait Events
 typedef void* EVENTHANDLE;
 class cResetEvent
@@ -220,7 +221,7 @@ public :
 #if HOST_OS==OS_WINDOWS
 		InitializeCriticalSection(&cs);
 #else
-		mutx=PTHREAD_MUTEX_INITIALIZER;
+		pthread_mutex_init(&mutx, NULL);
 #endif
 	}
 	~cMutex()
