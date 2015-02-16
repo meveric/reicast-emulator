@@ -79,7 +79,7 @@ typedef struct ucontext_t
 @brief     Getting the callstack under Android 
 @author    Peter Holtwick 
 */ 
-#include <unwind.h> 
+//#include <unwind.h> 
 #include <stdio.h> 
 #include <string.h> 
 
