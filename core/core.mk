@@ -95,7 +95,7 @@ ifdef NO_REC
   RZDCY_CFLAGS += -DTARGET_NO_REC
 endif
 
-ifndef DESKTOPGL
+ifdef USE_GLES
   RZDCY_CFLAGS += -DGLES
 endif
 
