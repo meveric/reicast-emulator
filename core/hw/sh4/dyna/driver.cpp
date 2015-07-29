@@ -25,18 +25,18 @@
 #include "ngen.h"
 #include "decoder.h"
 
-#ifndef HOST_NO_REC
+#if FEAT_SHREC != DYNAREC_NONE
 //uh uh
 
-#if HOST_OS != OS_LINUX
-u8 SH4_TCB[2*CODE_SIZE+4096];
-#elif HOST_OS == OS_LINUX
-
-u8 SH4_TCB[2*CODE_SIZE+4096] 
-#ifndef DYNA_OPROF
-__attribute__((section(".text")))
-#endif
+u8 SH4_TCB[2*CODE_SIZE+4096]
+#if HOST_OS == OS_WINDOWS || FEAT_SHREC != DYNAREC_JIT
 	;
+#elif HOST_OS == OS_LINUX
+	__attribute__((section(".text")));
+#elif HOST_OS==OS_DARWIN
+	__attribute__((section("__TEXT,.text")));
+#else
+	#error SH4_TCB ALLOC
 #endif
 
 u8* CodeCache;
@@ -208,11 +208,11 @@ void RuntimeBlockInfo::Setup(u32 rpc,fpscr_t rfpu_cfg)
 	AnalyseBlock(this);
 }
 
-DynarecCodeEntry* rdv_CompilePC()
+DynarecCodeEntryPtr rdv_CompilePC()
 {
 	u32 pc=next_pc;
 
-	if (emit_FreeSpace()<16*1024 || pc==0x8c0000e0 || pc==0x8c010000 || pc==0x8c008300)
+	if (emit_FreeSpace()<16*1024 || pc==0x8c0000e0 || pc==0xac010000 || pc==0xac008300)
 		recSh4_ClearCache();
 
 	RuntimeBlockInfo* rv=0;
@@ -240,7 +240,7 @@ DynarecCodeEntry* rdv_CompilePC()
 	return rv->code;
 }
 
-DynarecCodeEntry* DYNACALL rdv_FailedToFindBlock(u32 pc)
+DynarecCodeEntryPtr DYNACALL rdv_FailedToFindBlock(u32 pc)
 {
 	//printf("rdv_FailedToFindBlock ~ %08X\n",pc);
 	next_pc=pc;
@@ -250,17 +250,15 @@ DynarecCodeEntry* DYNACALL rdv_FailedToFindBlock(u32 pc)
 
 extern u32 rebuild_counter;
 
-void bm_Rebuild();
-u32 DYNACALL rdv_DoInterrupts(void* block_cpde)
-{
-	RuntimeBlockInfo* rbi=bm_GetBlock(block_cpde);
-	next_pc=rbi->addr;
+
+u32 DYNACALL rdv_DoInterrupts_pc(u32 pc) {
+	next_pc = pc;
 	UpdateINTC();
 
 	//We can only safely relocate/etc stuff here, as in other generic update cases
 	//There's a RET, meaning the code can't move around
 	//Interrupts happen at least 50 times/second, so its not a problem ..
-	if (rebuild_counter==0)
+	if (rebuild_counter == 0)
 	{
 		// TODO: Why is this commented, etc.
 		//bm_Rebuild();
@@ -269,25 +267,32 @@ u32 DYNACALL rdv_DoInterrupts(void* block_cpde)
 	return next_pc;
 }
 
-DynarecCodeEntry* DYNACALL rdv_BlockCheckFail(u32 pc)
+void bm_Rebuild();
+u32 DYNACALL rdv_DoInterrupts(void* block_cpde)
+{
+	RuntimeBlockInfo* rbi = bm_GetBlock(block_cpde);
+	return rdv_DoInterrupts_pc(rbi->addr);
+}
+
+DynarecCodeEntryPtr DYNACALL rdv_BlockCheckFail(u32 pc)
 {
 	next_pc=pc;
 	recSh4_ClearCache();
 	return rdv_CompilePC();
 }
 
-DynarecCodeEntry* rdv_FindCode()
+DynarecCodeEntryPtr rdv_FindCode()
 {
-	DynarecCodeEntry* rv=bm_GetCode(next_pc);
+	DynarecCodeEntryPtr rv=bm_GetCode(next_pc);
 	if (rv==ngen_FailedToFindBlock)
 		return 0;
 	
 	return rv;
 }
 
-DynarecCodeEntry* rdv_FindOrCompile()
+DynarecCodeEntryPtr rdv_FindOrCompile()
 {
-	DynarecCodeEntry* rv=bm_GetCode(next_pc);
+	DynarecCodeEntryPtr rv=bm_GetCode(next_pc);
 	if (rv==ngen_FailedToFindBlock)
 		rv=rdv_CompilePC();
 	
@@ -324,7 +329,7 @@ void* DYNACALL rdv_LinkBlock(u8* code,u32 dpc)
 			next_pc=rbi->NextBlock;
 	}
 
-	DynarecCodeEntry* rv=rdv_FindOrCompile();
+	DynarecCodeEntryPtr rv=rdv_FindOrCompile();
 
 	bool do_link=bm_GetBlock(code)==rbi;
 
@@ -388,6 +393,10 @@ void recSh4_Reset(bool Manual)
 	Sh4_int_Reset(Manual);
 }
 
+#if HOST_OS == OS_DARWIN
+#include <sys/mman.h>
+#endif
+
 void recSh4_Init()
 {
 	printf("recSh4 Init\n");
@@ -395,11 +404,16 @@ void recSh4_Init()
 	bm_Init();
 	bm_Reset();
 
-	verify(rcb_noffs(p_sh4rcb->fpcb)==-33816576);
-	verify(rcb_noffs(p_sh4rcb->sq_buffer)==-512);
+#if HOST_CPU == CPU_X64
+	verify(rcb_noffs(p_sh4rcb->fpcb) == -67371008);
+#else
+	verify(rcb_noffs(p_sh4rcb->fpcb) == -33816576);
+#endif
 
-	verify(rcb_noffs(&p_sh4rcb->cntx.sh4_sched_next)==-152);
-	verify(rcb_noffs(&p_sh4rcb->cntx.interrupt_pend)==-148);
+	verify(rcb_noffs(p_sh4rcb->sq_buffer) == -512);
+
+	verify(rcb_noffs(&p_sh4rcb->cntx.sh4_sched_next) == -152);
+	verify(rcb_noffs(&p_sh4rcb->cntx.interrupt_pend) == -148);
 	
 
 	verify(mem_b.data==((u8*)p_sh4rcb->sq_buffer+512+0x0C000000));
@@ -407,14 +421,19 @@ void recSh4_Init()
 	//align to next page ..
     CodeCache = (u8*)(((unat)SH4_TCB+4095)& ~4095);
 
+#if HOST_OS == OS_DARWIN
+    munmap(CodeCache, CODE_SIZE*2);
+    CodeCache = (u8*)mmap(CodeCache, 2*CODE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_FIXED | MAP_PRIVATE | MAP_ANON, 0, 0);
+#endif
+
 #if HOST_OS == OS_WINDOWS
 	DWORD old;
 	VirtualProtect(CodeCache,CODE_SIZE*2,PAGE_EXECUTE_READWRITE,&old);
-#elif HOST_OS == OS_LINUX
+#elif HOST_OS == OS_LINUX || HOST_OS == OS_DARWIN
 	
-	printf("\n\t CodeCache addr: %p | from: %p | addr here: %p\n", CodeCache, SH4_TCB, recSh4_Init);
+	printf("\n\t CodeCache addr: %p | from: %p | addr here: %p\n", CodeCache, CodeCache, recSh4_Init);
 
-	if (mprotect(CodeCache, CODE_SIZE*2, PROT_EXEC|PROT_READ|PROT_WRITE))
+	if (mprotect(CodeCache, CODE_SIZE*2, PROT_READ|PROT_WRITE|PROT_EXEC))
 	{
 		perror("\n\tError,Couldn’t mprotect CodeCache!");
 		verify(false);
@@ -441,24 +460,19 @@ bool recSh4_IsCpuRunning()
 {
 	return Sh4_int_IsCpuRunning();
 }
-#endif
 
 void Get_Sh4Recompiler(sh4_if* rv)
 {
-	#ifdef HOST_NO_REC
-	Get_Sh4Interpreter(rv);
-	#else
-	rv->Run=recSh4_Run;
-	rv->Stop=recSh4_Stop;
-	rv->Step=recSh4_Step;
-	rv->Skip=recSh4_Skip;
-	rv->Reset=recSh4_Reset;
-	rv->Init=recSh4_Init;
-	rv->Term=recSh4_Term;
-	rv->IsCpuRunning=recSh4_IsCpuRunning;
+	rv->Run = recSh4_Run;
+	rv->Stop = recSh4_Stop;
+	rv->Step = recSh4_Step;
+	rv->Skip = recSh4_Skip;
+	rv->Reset = recSh4_Reset;
+	rv->Init = recSh4_Init;
+	rv->Term = recSh4_Term;
+	rv->IsCpuRunning = recSh4_IsCpuRunning;
 	//rv->GetRegister=Sh4_int_GetRegister;
 	//rv->SetRegister=Sh4_int_SetRegister;
-	rv->ResetCache=recSh4_ClearCache;
-	#endif
+	rv->ResetCache = recSh4_ClearCache;
 }
-
+#endif

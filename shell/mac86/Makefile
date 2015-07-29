@@ -3,8 +3,8 @@ LOCAL_PATH := $(call my-dir)
 FOR_LINUX :=1
 NOT_ARM := 1
 NO_REC := 1
-#NO_REND := 1
-WEBUI :=1 
+NO_REND := 1
+#WEBUI :=1 
 
 RZDCY_SRC_DIR = ../../core
 
@@ -23,24 +23,21 @@ MFLAGS := -m32
 ASFLAGS := -m32
 #-march=armv7-a -mfpu=neon -mfloat-abi=softfp
 
-LDFLAGS	:= -m32	-g -Wl,-Map,$(notdir $@).map,--gc-sections -Wl,-O3 -Wl,--sort-common 
+LDFLAGS	:= -m32	-g 
 
 SOURCES	:=	cfg/ hw/arm7/ hw/aica/ hw/asic/ hw/ hw/gdrom/ hw/maple/ \
  hw/mem/ hw/pvr/ hw/sh4/ hw/sh4/rec_v2/ plugins/ profiler/ serial_ipc/ \
  hw/extdev/ hw/arm/ imgread/ linux/ linux-dist/ ./ rec-ARM/ deps/zlib/ deps/chdr/ deps/crypto/ arm_emitter/ 
 
 
-CXXFLAGS :=  -m32 -g -O3  -D RELEASE -c -D TARGET_LINUX_x86 -D USES_HOMEDIR -D HOST_NO_REC #-D NO_REND
-CXXFLAGS += -frename-registers -fno-strict-aliasing -fsingle-precision-constant 
+CXXFLAGS := -m32 -g -O3  -D RELEASE -c -D TARGET_LINUX_x86 -D TARGET_NO_REC -D NO_REND
+CXXFLAGS += -fno-strict-aliasing
 CXXFLAGS += -ffast-math -ftree-vectorize 
 #-fprefetch-loop-arrays 
 #-std=c++0x
 
 CXXFLAGS += $(CFLAGS) $(MFLAGS) -fno-exceptions -fno-rtti
-CXXFLAGS += -D SUPPORT_X11 
-
-# use this to do GLES on x11 (also, update the libs)
-# CXXFLAGS += -DGLES
+# CXXFLAGS += -D SUPPORT_X11
 
 
 ifdef PGO_MAKE
@@ -64,11 +61,8 @@ INCS	:= -I$(RZDCY_SRC_DIR) -I$(RZDCY_SRC_DIR)/deps -I$(RZDCY_SRC_DIR)/khronos -I
 
 LIBS    := -L../linux-deps/lib/x86 -L./enta_viv 
 #LIBS	+= -lglapi
-LIBS    += -lm -lrt
-LIBS	+= -ldl -lGL #for desktop gl
-#use this for GLES 
-#LIBS	+= -lEGL -lGLESv2 #-lglslcompiler -lIMGegl -lpvr2d -lsrv_um
-LIBS    += -lpthread -lasound -lX11 -lXdmcp -lXau
+LIBS    += -lm # -lrt -lEGL -lGLESv2 #-lglslcompiler -lIMGegl -lpvr2d -lsrv_um
+LIBS    += -lpthread # -lX11 -lXdmcp -lXau
 
 
 OBJECTS=$(RZDCY_FILES:.cpp=.build_obj)

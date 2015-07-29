@@ -1,7 +1,7 @@
 #include "types.h"
 
-#ifndef HOST_NO_REC
-#include "win86_ngen.h"
+#if FEAT_SHREC == DYNAREC_JIT && HOST_CPU == CPU_X86
+#include "rec_x86_ngen.h"
 
 
 
@@ -37,6 +37,7 @@ void DetectCpuFeatures()
 	if (detected) return;
 	detected=true;
 
+#if HOST_OS==OS_WINDOWS
 	__try
 	{
 		__asm addps xmm0,xmm0
@@ -83,6 +84,7 @@ void DetectCpuFeatures()
 	{
 		mmx=false;
 	}
+	#endif
 }
 
 
@@ -107,7 +109,7 @@ u32 csc_sidx=1;
 
 x86_reg alloc_regs[]={EBX,EBP,ESI,EDI,NO_REG};
 x86_reg xmm_alloc_regs[]={XMM7,XMM6,XMM5,XMM4,NO_REG};
-f32 ALIGN(16) thaw_regs[4];
+f32 DECL_ALIGN(16) thaw_regs[4];
 
 
 void x86_reg_alloc::Preload(u32 reg,x86_reg nreg)
@@ -263,6 +265,7 @@ u32* GetRegPtr(u32 reg)
 u32 cvld;
 u32 rdmt[6];
 extern u32 memops_t,memops_l;
+extern int mips_counter;
 
 void CheckBlock(RuntimeBlockInfo* block,x86_ptr_imm place)
 {
@@ -284,6 +287,8 @@ void CheckBlock(RuntimeBlockInfo* block,x86_ptr_imm place)
 	}
 	
 }
+
+
 void ngen_Compile(RuntimeBlockInfo* block,bool force_checks, bool reset, bool staging,bool optimise)
 {
 	//initialise stuff
@@ -299,11 +304,15 @@ void ngen_Compile(RuntimeBlockInfo* block,bool force_checks, bool reset, bool st
 	x86e->x86_size=emit_FreeSpace();
 	x86e->do_realloc=false;
 
-	block->code=(DynarecCodeEntry*)emit_GetCCPtr();
+	block->code=(DynarecCodeEntryPtr)emit_GetCCPtr();
 
 	x86e->Emit(op_add32,&memops_t,block->memops);
 	x86e->Emit(op_add32,&memops_l,block->linkedmemops);
-	
+
+#ifdef MIPS_COUNTER
+	x86e->Emit(op_add32, &mips_counter, block->oplist.size());
+#endif
+
 	//run register allocator
 	reg.DoAlloc(block,alloc_regs,xmm_alloc_regs);
 	
@@ -638,6 +647,10 @@ void gen_hande(u32 w, u32 sz, u32 mode)
 	{
 		//General
 
+		#if HOST_OS != OS_WINDOWS
+			//maintain 16 byte alignment
+			x86e->Emit(op_sub32, ESP, 12);
+		#endif
 		if ((sz==SZ_32F || sz==SZ_64F) && w==1)
 		{
 			if (sz==SZ_32F)
@@ -646,7 +659,10 @@ void gen_hande(u32 w, u32 sz, u32 mode)
 			}
 			else
 			{
-				x86e->Emit(op_sub32,ESP,8);
+				#if HOST_OS == OS_WINDOWS
+					//on linux, we have scratch space on esp
+					x86e->Emit(op_sub32,ESP,8);
+				#endif
 				x86e->Emit(op_movss,x86_mrm(ESP,x86_ptr::create(+4)),XMM1);
 				x86e->Emit(op_movss,x86_mrm(ESP,x86_ptr::create(-0)),XMM0);
 			}
@@ -662,6 +678,15 @@ void gen_hande(u32 w, u32 sz, u32 mode)
 				x86e->Emit(op_movd_xmm_from_r32,XMM1,EDX);
 			}
 		}
+		#if HOST_OS != OS_WINDOWS
+			//maintain 16 byte alignment
+			if ((sz == SZ_64F) && w == 1) {
+				x86e->Emit(op_add32, ESP, 4);
+			}
+			else {
+				x86e->Emit(op_add32, ESP, 12);
+			}
+		#endif
 	}
 
 	x86e->Emit(op_ret);
@@ -745,6 +770,10 @@ bool ngen_Rewrite(unat& addr,unat retadr,unat acc)
 				if ((u32)mem_code[0][w][i]==ca)
 				{
 					//found !
+
+					if ((acc >> 26) == 0x38 && !w) {
+						printf("WARNING: SQ AREA READ, %08X from sh4:%08X. THIS IS UNDEFINED ON A REAL DREACMAST.\n", acc, bm_GetBlock(x86e->x86_buff)->addr);
+					}
 
 					if ((acc >> 26) == 0x38) //sq ?
 					{

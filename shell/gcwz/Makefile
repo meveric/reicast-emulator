@@ -4,6 +4,9 @@ FOR_LINUX :=1
 NOT_ARM := 1
 NO_REC := 1
 #NO_REND := 1
+USE_ALSA := 1
+#USE_OSS := 1
+#USE_PULSEAUDIO := 1
 
 RZDCY_SRC_DIR = ../../core
 
@@ -30,7 +33,7 @@ SOURCES	:=	cfg/ hw/arm7/ hw/aica/ hw/asic/ hw/ hw/gdrom/ hw/maple/ \
  hw/extdev/ hw/arm/ imgread/ linux/ linux-dist/ ./ rec-ARM/ deps/zlib/ deps/chdr/ deps/crypto/ arm_emitter/ 
 
 
-CXXFLAGS := -g -O3  -D RELEASE -c -D TARGET_GCW0 -D USES_HOMEDIR -D HOST_NO_REC #-D NO_REND
+CXXFLAGS := -g -O3  -D RELEASE -c -D TARGET_GCW0 -D USES_HOMEDIR -D TARGET_NO_REC #-D NO_REND
 CXXFLAGS += -frename-registers -fno-strict-aliasing -fsingle-precision-constant 
 CXXFLAGS += -ffast-math -ftree-vectorize 
 #-fprefetch-loop-arrays 
@@ -61,8 +64,22 @@ INCS	:= -I$(RZDCY_SRC_DIR) -I$(RZDCY_SRC_DIR)/deps -I$(RZDCY_SRC_DIR)/khronos -I
 
 LIBS    := -L../linux-deps/lib -L./enta_viv 
 LIBS	+= -lglapi
-LIBS    += -lm -lrt -lEGL -lGLESv2 #-lglslcompiler -lIMGegl -lpvr2d -lsrv_um
-LIBS    += -lpthread -lasound #-lX11 -lXdmcp -lXau
+LIBS    += -lm -lrt -ldl -lEGL -lGLESv2 #-lglslcompiler -lIMGegl -lpvr2d -lsrv_um
+LIBS    += -lpthread #-lX11 -lXdmcp -lXau
+
+ifdef USE_ALSA
+	CXXFLAGS += -D USE_ALSA
+	LIBS += -lasound
+endif
+
+ifdef USE_OSS
+	CXXFLAGS += -D USE_OSS
+endif
+
+ifdef USE_PULSEAUDIO
+	CXXFLAGS += -D USE_PULSEAUDIO
+	LIBS += -lpulse-simple
+endif
 
 
 OBJECTS=$(RZDCY_FILES:.cpp=.build_obj)

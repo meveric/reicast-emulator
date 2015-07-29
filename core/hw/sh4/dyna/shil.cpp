@@ -2,6 +2,8 @@
 	Some WIP optimisation stuff and maby helper functions for shil
 */
 
+#include <sstream>
+
 #include "types.h"
 #include "shil.h"
 #include "decoder.h"
@@ -1015,12 +1017,10 @@ bool UpdateSR();
 //#define SHIL_MODE 2
 //#include "shil_canonical.h"
 
-#ifndef HOST_NO_REC
+#if FEAT_SHREC != DYNAREC_NONE
 #define SHIL_MODE 3
 #include "shil_canonical.h"
 #endif
-
-#include <sstream>
 
 string name_reg(u32 reg)
 {

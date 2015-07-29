@@ -66,7 +66,7 @@ int GetFile(char *szFileName, char *szParse=0,u32 flags=0)
 			//strcpy(szFileName,ofn.lpstrFile);
 		}
 	#else
-		strcpy(szFileName,GetPath("/discs/game.gdi").c_str());
+		strcpy(szFileName,GetPath("/game.chd").c_str());
 	#endif
 #endif
 	}
@@ -131,7 +131,7 @@ void plugins_Reset(bool Manual)
 
 void* webui_th(void* p)
 {
-	#if (HOST_OS == OS_WINDOWS || HOST_OS == OS_LINUX)  && !defined(TARGET_PANDORA)
+	#if (HOST_OS == OS_WINDOWS || HOST_OS == OS_LINUX)  && !defined(TARGET_PANDORA) && defined(WEBUI)
 		webui_start();
 	#endif
 
@@ -169,13 +169,21 @@ int dc_init(int argc,wchar* argv[])
 
 	int rv= 0;
 
-
-	if (!LoadRomFiles(GetPath("/data/")))
+#if HOST_OS != OS_DARWIN
+    #define DATA_PATH "/data/"
+#else
+    #define DATA_PATH "/"
+#endif
+    
+	if (settings.bios.UseReios || !LoadRomFiles(GetPath(DATA_PATH)))
 	{
-		return -3;
+		if (!LoadHle(GetPath(DATA_PATH)))
+			return -3;
+		else
+			printf("Did not load bios, using reios\n");
 	}
 
-#if !defined(HOST_NO_REC)
+#if FEAT_SHREC != DYNAREC_NONE
 	if(settings.dynarec.Enable)
 	{
 		Get_Sh4Recompiler(&sh4_cpu);
@@ -198,7 +206,11 @@ int dc_init(int argc,wchar* argv[])
 	
 	mem_map_default();
 
+#ifndef _ANDROID
 	mcfg_CreateDevices();
+#else
+    mcfg_CreateDevices();
+#endif
 
 	plugins_Reset(false);
 	mem_Reset(false);
@@ -246,7 +258,15 @@ void LoadSettings()
 	
 	settings.pvr.ta_skip			= cfgLoadInt("config","ta.skip",0);
 	settings.pvr.rend				= cfgLoadInt("config","pvr.rend",0);
+
+	settings.debug.SerialConsole = cfgLoadInt("config", "Debug.SerialConsoleEnabled", 0) != 0;
+
+	settings.reios.ElfFile = cfgLoadStr("reios", "ElfFile","");
+
+	settings.validate.OpenGlChecks = cfgLoadInt("validate", "OpenGlChecks", 0) != 0;
 #endif
+
+	settings.bios.UseReios = cfgLoadInt("config", "bios.UseReios", 0);
 
 #if (HOST_OS != OS_LINUX || defined(_ANDROID) || defined(TARGET_PANDORA))
 	settings.aica.BufferSize=2048;

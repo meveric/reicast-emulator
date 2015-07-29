@@ -3,18 +3,25 @@
 #include "build.h"
 
 #if BUILD_COMPILER==COMPILER_VC
-#define ALIGN(x) __declspec(align(x))
+#define DECL_ALIGN(x) __declspec(align(x))
 #else
 #define __forceinline inline
-#define ALIGN(x) __attribute__((aligned(x)))
+#define DECL_ALIGN(x) __attribute__((aligned(x)))
 #define __debugbreak
 #endif
 
 
-#if BUILD_COMPILER==COMPILER_VC
-#define DYNACALL  __fastcall
+#if HOST_CPU == CPU_X86
+
+	#if BUILD_COMPILER==COMPILER_VC
+	#define DYNACALL  __fastcall
+	#else
+	//android defines fastcall as regparm(3), it doesn't work for us
+	#undef fastcall
+	#define DYNACALL __attribute__((fastcall))
+	#endif
 #else
-#define DYNACALL 
+	#define DYNACALL
 #endif
 
 #if BUILD_COMPILER==COMPILER_VC
@@ -500,6 +507,7 @@ using namespace std;
 #define VER_FULLNAME	VER_EMUNAME " rel0" _X_x_X_MMU_VER_STR " (built " __DATE__ "@" __TIME__ ")"
 #define VER_SHORTNAME	VER_EMUNAME " rel0" _X_x_X_MMU_VER_STR
 
+
 void os_DebugBreak();
 #define dbgbreak os_DebugBreak()
 
@@ -509,7 +517,6 @@ void os_DebugBreak();
 #define stricmp strcasecmp
 #endif
 
-//#define __fastcall <nothing useful is here "" must not happen ever>
 #ifndef STRIP_TEXT
 #define verify(x) if((x)==false){ msgboxf("Verify Failed  : " #x "\n in %s -> %s : %d \n",MBX_ICONERROR,(__FUNCTION__),(__FILE__),__LINE__); dbgbreak;}
 #define die(reason) { msgboxf("Fatal error : %s\n in %s -> %s : %d \n",MBX_ICONERROR,(reason),(__FUNCTION__),(__FILE__),__LINE__); dbgbreak;}
@@ -590,6 +597,14 @@ struct RegisterStruct
 
 struct settings_t
 {
+	struct {
+		bool UseReios;
+	} bios;
+
+	struct {
+		string ElfFile;
+	} reios;
+
 	struct
 	{
 		bool UseMipmaps;
@@ -672,6 +687,14 @@ struct settings_t
 		u32 subdivide_transp;
 		u32 rend;
 	} pvr;
+
+	struct {
+		bool SerialConsole;
+	} debug;
+
+	struct {
+		bool OpenGlChecks;
+	} validate;
 };
 
 extern settings_t settings;

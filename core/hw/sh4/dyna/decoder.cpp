@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-#ifndef HOST_NO_REC
+#if FEAT_SHREC != DYNAREC_NONE
 
 #include "decoder.h"
 #include "shil.h"
@@ -14,6 +14,9 @@
 #include "hw/sh4/sh4_core.h"
 #include "hw/sh4/sh4_mem.h"
 #include "decoder_opcodes.h"
+
+#define BLOCK_MAX_SH_OPS_SOFT 500
+#define BLOCK_MAX_SH_OPS_HARD 511
 
 RuntimeBlockInfo* blk;
 
@@ -657,7 +660,7 @@ u32 MatchDiv32(u32 pc , Sh4RegType &reg1,Sh4RegType &reg2 , Sh4RegType &reg3)
 		}
 		else
 		{
-			printf("%s\n",OpDesc[opcode]->diss);
+			//printf("DIV MATCH BROKEN BY: %s\n",OpDesc[opcode]->diss);
 			break;
 		}
 		
@@ -1040,9 +1043,7 @@ void dec_DecodeBlock(RuntimeBlockInfo* rbi,u32 max_cycles)
 {
 	blk=rbi;
 	state.Setup(blk->addr,blk->fpu_cfg);
-#ifndef HOST_NO_REC
 	ngen_GetFeatures(&state.ngen);
-#endif
 	
 	blk->guest_opcodes=0;
 	
@@ -1056,7 +1057,10 @@ void dec_DecodeBlock(RuntimeBlockInfo* rbi,u32 max_cycles)
 			//there is no break here by design
 		case NDO_NextOp:
 			{
-				if (blk->guest_cycles>=max_cycles && !state.cpu.is_delayslot)
+				if ( 
+					( (blk->oplist.size() >= BLOCK_MAX_SH_OPS_SOFT) || (blk->guest_cycles >= max_cycles) )
+					&& !state.cpu.is_delayslot
+					)
 				{
 					dec_End(state.cpu.rpc,BET_StaticJump,false);
 				}
@@ -1144,6 +1148,8 @@ _end:
 	blk->NextBlock=state.NextAddr;
 	blk->BranchBlock=state.JumpAddr;
 	blk->BlockType=state.BlockType;
+
+	verify(blk->oplist.size() <= BLOCK_MAX_SH_OPS_HARD);
 	
 #if HOST_OS == OS_WINDOWS
 	switch(rbi->addr)

@@ -24,30 +24,58 @@ WEBUI := 1
 
 ifneq ($(TARGET_ARCH_ABI),armeabi-v7a)
   NOT_ARM := 1
-  NO_REC := 1
+else
+  NOT_ARM := 
+endif
+
+ifeq ($(TARGET_ARCH_ABI),x86)
+  X86_REC := 1
+else
+  X86_REC := 
 endif
 
 ifeq ($(TARGET_ARCH_ABI),mips)
   ISMIPS := 1
+  NO_REC := 1
+else
+  ISMIPS :=
+  NO_REC :=
 endif
+
+$(info $$TARGET_ARCH_ABI is [${TARGET_ARCH_ABI}])
 
 include $(LOCAL_PATH)/../../core/core.mk
 
 LOCAL_SRC_FILES := $(RZDCY_FILES)
 LOCAL_SRC_FILES += $(wildcard $(LOCAL_PATH)/jni/src/Android.cpp)
 LOCAL_SRC_FILES += $(wildcard $(LOCAL_PATH)/jni/src/utils.cpp)
-LOCAL_CFLAGS  := $(RZDCY_CFLAGS)
-LOCAL_CXXFLAGS  := $(RZDCY_CXXFLAGS)
+LOCAL_CFLAGS  := $(RZDCY_CFLAGS) -fvisibility=hidden -ffunction-sections -fdata-sections
+LOCAL_CXXFLAGS  := $(RZDCY_CXXFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections
+LOCAL_CPPFLAGS  := $(RZDCY_CXXFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections
 
+ifeq ($(TARGET_ARCH_ABI),x86)
+  LOCAL_CFLAGS+= -DTARGET_NO_AREC
+  LOCAL_CXXFLAGS+= -DTARGET_NO_AREC -fpermissive
+  LOCAL_CPPFLAGS+= -DTARGET_NO_AREC
+endif
+
+LOCAL_CPP_FEATURES := 
 LOCAL_SHARED_LIBRARIES:= libcutils libutils
 LOCAL_PRELINK_MODULE  := false
 
 LOCAL_MODULE	:= dc
 LOCAL_DISABLE_FORMAT_STRING_CHECKS=true
 LOCAL_ASFLAGS := -fvisibility=hidden
-LOCAL_LDLIBS	:= -llog -lGLESv2 -lEGL -lz
+LOCAL_LDLIBS	:= -llog -lGLESv2 -lEGL -lz 
 #-Wl,-Map,./res/raw/syms.mp3
 LOCAL_ARM_MODE	:= arm
+
+
+ifeq ($(TARGET_ARCH),mips)
+  LOCAL_LDFLAGS += -Wl,--gc-sections
+else
+  LOCAL_LDFLAGS += -Wl,--gc-sections,--icf=safe
+endif
 
 #
 # android has poor support for hardfp calling.

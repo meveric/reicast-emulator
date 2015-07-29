@@ -140,6 +140,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\core\linux\context.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\core\linux\nixprof.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
@@ -147,16 +153,36 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\core\nullDC.cpp" />
-    <ClCompile Include="..\core\oslib\alsa_audiostream.cpp" />
+    <ClCompile Include="..\core\oslib\audiobackend_directsound.cpp" />
     <ClCompile Include="..\core\oslib\audiostream.cpp" />
-    <ClCompile Include="..\core\oslib\ds_audiostream.cpp" />
     <ClCompile Include="..\core\profiler\profiler.cpp" />
-    <ClCompile Include="..\core\rec-ARM\arm_dyna.cpp">
+    <ClCompile Include="..\core\rec-ARM\rec_arm.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\core\rec-cpp\rec_cpp.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="..\core\rec-x64\rec_x64.cpp" />
+    <ClCompile Include="..\core\rec-x86\rec_x86_driver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\core\rec-x86\rec_x86_il.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\core\rec-x86\rec_x86_asm.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\core\reios\descrambl.cpp" />
+    <ClCompile Include="..\core\reios\gdrom_hle.cpp" />
+    <ClCompile Include="..\core\reios\reios.cpp" />
+    <ClCompile Include="..\core\reios\reios_elf.cpp" />
     <ClCompile Include="..\core\rend\d3d11\d3d11.cpp" />
     <ClCompile Include="..\core\rend\gles\gldraw.cpp" />
     <ClCompile Include="..\core\rend\gles\gles.cpp" />
@@ -164,9 +190,6 @@
     <ClCompile Include="..\core\rend\TexCache.cpp" />
     <ClCompile Include="..\core\stdclass.cpp" />
     <ClCompile Include="..\core\webui\server.cpp" />
-    <ClCompile Include="..\core\windows\win86_driver.cpp" />
-    <ClCompile Include="..\core\windows\win86_il.cpp" />
-    <ClCompile Include="..\core\windows\win86_ngen.cpp" />
     <ClCompile Include="..\core\windows\winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -277,22 +300,36 @@
     <ClInclude Include="..\core\imgread\pfctoc.h" />
     <ClInclude Include="..\core\imgread\resource.h" />
     <ClInclude Include="..\core\imgread\SCSIDEFS.H" />
+    <ClInclude Include="..\core\linux\context.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\core\linux\typedefs.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="..\core\oslib\audiostream_rif.h" />
+    <ClInclude Include="..\core\oslib\audiobackend_directsound.h" />
+    <ClInclude Include="..\core\oslib\audiostream.h" />
     <ClInclude Include="..\core\oslib\oslib.h" />
     <ClInclude Include="..\core\profiler\profiler.h" />
+    <ClInclude Include="..\core\rec-x86\rec_x86_ngen.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\core\reios\descrambl.h" />
+    <ClInclude Include="..\core\reios\gdrom_hle.h" />
+    <ClInclude Include="..\core\reios\reios.h" />
+    <ClInclude Include="..\core\reios\reios_elf.h" />
     <ClInclude Include="..\core\rend\gles\gles.h" />
     <ClInclude Include="..\core\rend\rend.h" />
     <ClInclude Include="..\core\rend\TexCache.h" />
     <ClInclude Include="..\core\stdclass.h" />
     <ClInclude Include="..\core\types.h" />
     <ClInclude Include="..\core\webui\server.h" />
-    <ClInclude Include="..\core\windows\win86_ngen.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\core\deps\zlib\Makefile" />
@@ -301,6 +338,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\core\rec-x86\rec_lin86_asm.S">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">true</ExcludedFromBuild>
     </None>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -338,6 +381,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -422,6 +466,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -462,6 +508,8 @@
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -482,5 +530,6 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

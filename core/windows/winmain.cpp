@@ -1,5 +1,5 @@
 #include "oslib\oslib.h"
-#include "oslib\audiostream_rif.h"
+#include "oslib\audiostream.h"
 #include "imgread\common.h"
 
 #define _WIN32_WINNT 0x0500 
@@ -125,15 +125,15 @@ int ExeptionHandler(u32 dwCode, void* pExceptionPointers)
 	{
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
-#ifndef HOST_NO_REC
-	else if ( ngen_Rewrite((unat&)ep->ContextRecord->Eip,*(unat*)ep->ContextRecord->Esp,ep->ContextRecord->Eax) )
-	{
-		//remove the call from call stack
-		ep->ContextRecord->Esp+=4;
-		//restore the addr from eax to ecx so its valid again
-		ep->ContextRecord->Ecx=ep->ContextRecord->Eax;
-		return EXCEPTION_CONTINUE_EXECUTION;
-	}
+#if FEAT_SHREC == DYNAREC_JIT && HOST_CPU == CPU_X86
+		else if ( ngen_Rewrite((unat&)ep->ContextRecord->Eip,*(unat*)ep->ContextRecord->Esp,ep->ContextRecord->Eax) )
+		{
+			//remove the call from call stack
+			ep->ContextRecord->Esp+=4;
+			//restore the addr from eax to ecx so its valid again
+			ep->ContextRecord->Ecx=ep->ContextRecord->Eax;
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
 #endif
 	else
 	{
@@ -227,13 +227,13 @@ void UpdateInputState(u32 port)
 		if (GetAsyncKeyState(VK_RIGHT))
 			kcode[port]&=~key_CONT_DPAD_RIGHT;
 
-		if (GetAsyncKeyState('1'))
-			settings.pvr.ta_skip = 1;
+		if (GetAsyncKeyState(VK_F1))
+			settings.pvr.ta_skip = 100;
 
-		if (GetAsyncKeyState('2'))
+		if (GetAsyncKeyState(VK_F2))
 			settings.pvr.ta_skip = 0;
 
-		if (GetAsyncKeyState('0'))
+		if (GetAsyncKeyState(VK_F10))
 			DiscSwap();
 	}
 
@@ -310,7 +310,7 @@ void os_CreateWindow()
 
 	window_win=hWnd;
 
-	os_InitAudio();
+	InitAudio();
 }
 
 void* libPvr_GetRenderTarget() 
@@ -364,48 +364,6 @@ cResetEvent evt_hld(false,true);
 
 double speed_load_mspdf;
 extern double full_rps;
-
-void os_wait_cycl(u32 cycl)
-{
-	if (cycl>8*1000*1000)
-		cycl=8*1000*1000;
-
-	
-	static double trolol=os_GetSeconds();
-
-	double newt=os_GetSeconds();
-	double ets=(newt-trolol)*200*1000*1000;
-
-	bool fast_enough=ets < cycl;
-	
-	bool wait = full_rps >5 && (fast_enough || os_IsAudioBufferedLots());
-
-	speed_load_mspdf=(speed_load_mspdf*0.96235 + ets/cycl*10)/1.96235;
-
-	if (wait &&  os_IsAudioBuffered())
-	{
-		while (cycl_glob<cycl && os_IsAudioBuffered())
-			evt_hld.Wait(8);
-
-		if (cycl_glob>cycl)
-			InterlockedExchangeSubtract(&cycl_glob,cycl);
-	}
-	else //if (os_IsAudioBufferedLots())
-	{
-		//cycl_glob=0;
-	}
-
-
-	static int last_fe=fast_enough;
-	if (!fast_enough || !last_fe)
-		printf("Speed %.2f (%.2f%%) (%d)\n",ets/cycl*10,cycl/ets*100,os_getusedSamples());
-	
-	last_fe=fast_enough;
-
-
-
-	trolol=os_GetSeconds();
-}
 
 
 void os_consume(double t)
@@ -652,18 +610,30 @@ cResetEvent::~cResetEvent()
 }
 void cResetEvent::Set()//Signal
 {
+	#if defined(DEBUG_THREADS)
+		Sleep(rand() % 10);
+	#endif
 	SetEvent(hEvent);
 }
 void cResetEvent::Reset()//reset
 {
+	#if defined(DEBUG_THREADS)
+		Sleep(rand() % 10);
+	#endif
 	ResetEvent(hEvent);
 }
 void cResetEvent::Wait(u32 msec)//Wait for signal , then reset
 {
+	#if defined(DEBUG_THREADS)
+		Sleep(rand() % 10);
+	#endif
 	WaitForSingleObject(hEvent,msec);
 }
 void cResetEvent::Wait()//Wait for signal , then reset
 {
+	#if defined(DEBUG_THREADS)
+		Sleep(rand() % 10);
+	#endif
 	WaitForSingleObject(hEvent,(u32)-1);
 }
 //End AutoResetEvent

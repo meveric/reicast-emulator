@@ -1,28 +1,37 @@
 #include "types.h"
 
-#include "hw\sh4\sh4_opcode_list.h"
-#include "hw\sh4\modules\ccn.h"
+#include "hw/sh4/sh4_opcode_list.h"
+#include "hw/sh4/modules/ccn.h"
 #include "hw/sh4/sh4_interrupts.h"
 
-#include "hw\sh4\sh4_core.h"
-#include "hw\sh4\dyna\ngen.h"
-#include "hw\sh4\sh4_mem.h"
+#include "hw/sh4/sh4_core.h"
+#include "hw/sh4/dyna/ngen.h"
+#include "hw/sh4/sh4_mem.h"
 #include "hw/sh4/dyna/regalloc.h"
-#include "emitter\x86_emitter.h"
+#include "emitter/x86_emitter.h"
 #include "profiler/profiler.h"
-#include "oslib\oslib.h"
+#include "oslib/oslib.h"
 
 void ngen_opcode(RuntimeBlockInfo* block, shil_opcode* op,x86_block* x86e, bool staging, bool optimise);
+
+#if BUILD_COMPILER == COMPILER_GCC
+extern "C" 
+{
+#endif	
 
 void ngen_LinkBlock_Generic_stub();
 void ngen_LinkBlock_cond_Next_stub();
 void ngen_LinkBlock_cond_Branch_stub();
 void ngen_FailedToFindBlock_();
-void ngen_mainloop();
+void ngen_mainloop(void* cntx);
 
 
 void DYNACALL ngen_blockcheckfail(u32 addr);
 void DYNACALL ngen_blockcheckfail2(u32 addr);
+
+#if BUILD_COMPILER == COMPILER_GCC
+}
+#endif
 
 extern x86_block* x86e;
 

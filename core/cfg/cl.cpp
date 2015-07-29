@@ -78,8 +78,9 @@ int setconfig(wchar** arg,int cl)
 			return rv;
 		}
 
-		if (value==0)
-			value="";
+		const wchar* constval = value;
+		if (constval==0)
+			constval="";
 		printf("Virtual cfg %s:%s=%s\n",sect,key,value);
 
 		cfgSetVitual(sect,key,value);
@@ -125,6 +126,15 @@ bool ParseCommandLine(int argc,wchar* argv[])
 			int as=setconfig(arg,cl);
 			cl-=as;
 			arg+=as;
+		}
+		else if (strstr(*arg, ".cdi") || strstr(*arg, ".chd")) {
+			printf("Using '%s' as cd image\n", *arg);
+			cfgSetVitual("config", "image", *arg);
+		}
+		else if (strstr(*arg, ".elf")) {
+			printf("Using '%s' as reios elf file\n", *arg);
+			cfgSetVitual("config", "reios.enabled", "1");
+			cfgSetVitual("reios", "ElfFile", *arg);
 		}
 		else
 		{

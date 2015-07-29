@@ -8,7 +8,6 @@
 #include "ta.h"
 #include "ta_ctx.h"
 #include "pvr_mem.h"
-#include "rend/gles/gles.h"
 #include "Renderer_if.h"
 
 u32 ta_type_lut[256];
@@ -84,10 +83,10 @@ PolyParam* CurrentPP=&nullPP;
 List<PolyParam>* CurrentPPlist;
 
 //TA state vars	
-ALIGN(4) static u8 FaceBaseColor[4];
-ALIGN(4) static u8 FaceOffsColor[4];
-ALIGN(4) static u32 SFaceBaseColor;
-ALIGN(4) static u32 SFaceOffsColor;
+DECL_ALIGN(4) static u8 FaceBaseColor[4];
+DECL_ALIGN(4) static u8 FaceOffsColor[4];
+DECL_ALIGN(4) static u32 SFaceBaseColor;
+DECL_ALIGN(4) static u32 SFaceOffsColor;
 
 
 
@@ -1541,11 +1540,13 @@ void FillBGP(TA_context* ctx)
 	bool PSVM=FPU_SHAD_SCALE.intesity_shadow!=0; //double parameters for volumes
 
 	//Get the strip base
-	u32 strip_base=(param_base + ISP_BACKGND_T.tag_address*4)&0x7FFFFF;	//this is *not* VRAM_MASK on purpose.It fixes naomi bios and quite a few naomi games
+	u32 strip_base=(param_base + ISP_BACKGND_T.tag_address*4);	//this is *not* VRAM_MASK on purpose.It fixes naomi bios and quite a few naomi games
 	//i have *no* idea why that happens, they manage to set the render target over there as well
 	//and that area is *not* written by the games (they instead write the params on 000000 instead of 800000)
 	//could be a h/w bug ? param_base is 400000 and tag is 100000*4
 	//Calculate the vertex size
+	//Update: Looks like I was handling the bank interleave wrong for 16 megs ram, could that be it?
+
 	u32 strip_vs=3 + ISP_BACKGND_T.skip;
 	u32 strip_vert_num=ISP_BACKGND_T.tag_offset;
 

@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Environment;
 import android.view.Gravity;
@@ -94,6 +95,7 @@ public class OnScreenMenu {
 			fpsText.setGravity(Gravity.CENTER);
 			fpsText.setText("XX");
 			setContentView(fpsText);
+			setFocusable(false);
 		}
 
 		public void setText(int frames) {
@@ -119,7 +121,7 @@ public class OnScreenMenu {
 
 		public DebugPopup(Context c) {
 			super(c);
-			setBackgroundDrawable(null);
+			setBackgroundDrawable(new BitmapDrawable());
 
 			View shell = mContext.getLayoutInflater().inflate(R.layout.menu_popup_debug, null);
 			ScrollView hlay = (ScrollView) shell.findViewById(R.id.menuDebug);
@@ -169,6 +171,7 @@ public class OnScreenMenu {
 			addimg(buttonPrintStats, R.drawable.print_stats, clickPrintStats);
 
 			setContentView(shell);
+			setFocusable(true);
 			popups.add(this);
 		}
 	}
@@ -193,7 +196,7 @@ public class OnScreenMenu {
 
 		public ConfigPopup(Context c) {
 			super(c);
-			setBackgroundDrawable(null);
+			setBackgroundDrawable(new BitmapDrawable());
 
 			View shell = mContext.getLayoutInflater().inflate(R.layout.menu_popup_config, null);
 			final ScrollView hlay = (ScrollView) shell.findViewById(R.id.menuConfig);
@@ -369,6 +372,7 @@ public class OnScreenMenu {
 			}
 
 			setContentView(shell);
+			setFocusable(true);
 			popups.add(this);
 		}
 	}
@@ -450,6 +454,7 @@ public class OnScreenMenu {
 			vlay = new LinearLayout(mContext);
 			vlay.setOrientation(LinearLayout.HORIZONTAL);
 			setContentView(vlay);
+			setFocusable(false);
 		}
 
 		public void showVmu() {
@@ -481,7 +486,7 @@ public class OnScreenMenu {
 
 		public MainPopup(Context c) {
 			super(c);
-			setBackgroundDrawable(null);
+			setBackgroundDrawable(new BitmapDrawable());
 			
 			View shell = mContext.getLayoutInflater().inflate(R.layout.menu_popup_main, null);
 			ScrollView hlay = (ScrollView) shell.findViewById(R.id.menuMain);
@@ -547,15 +552,20 @@ public class OnScreenMenu {
 			
 			OnClickListener clickExit = new OnClickListener() {
 				public void onClick(View v) {
-					Intent inte = new Intent(mContext, MainActivity.class);
-					mContext.startActivity(inte);
-					((Activity) mContext).finish();
+					if (Config.externalIntent) {
+						((Activity) mContext).finish();
+					} else {
+						Intent inte = new Intent(mContext, MainActivity.class);
+						mContext.startActivity(inte);
+						((Activity) mContext).finish();
+					}
 				}
 			};
 			Button buttonExit = (Button) hlay.findViewById(R.id.buttonExit);
 			addimg(buttonExit, R.drawable.close, clickExit);
 
 			setContentView(shell);
+			setFocusable(true);
 			this.setAnimationStyle(R.style.Animation);
 		}
 		

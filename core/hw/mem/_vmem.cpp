@@ -146,11 +146,7 @@ INLINE Trv DYNACALL _vmem_readt(u32 addr)
 	u32   page=addr>>24;	//1 op, shift/extract
 	unat  iirf=(unat)_vmem_MemInfo_ptr[page]; //2 ops, insert + read [vmem table will be on reg ]
 	void* ptr=(void*)(iirf&~HANDLER_MAX);     //2 ops, and // 1 op insert
-	//u32   mask=(u32)0xFFFFFFFF>>iirf;       //2 ops, load -1 and shift
-	//1 op for the mask
-	//1 op for the add
-	//1 op for ret
-	//1 op for ram read (dslot)
+
 	if (likely(ptr!=0))
 	{
 		addr<<=iirf;
@@ -195,12 +191,7 @@ INLINE void DYNACALL _vmem_writet(u32 addr,T data)
 	u32 page=addr>>24;
 	unat  iirf=(unat)_vmem_MemInfo_ptr[page];
 	void* ptr=(void*)(iirf&~HANDLER_MAX);
-	//u32   mask=(u32)0xFFFFFFFF>>iirf;
 
-	if (sz==8 && ((u32)data==0x80000001 || (data>>32)==0x80000001) && addr != 0x0c1a5e18 )
-	{
-		//printf("WUT WUT %08X\n",iirf);
-	}
 	if (likely(ptr!=0))
 	{
 		addr<<=iirf;
@@ -546,7 +537,13 @@ error:
 
 	void* _nvmem_alloc_mem()
 	{
-#ifndef _ANDROID
+        
+#if HOST_OS == OS_DARWIN
+        string path = GetPath("/dcnzorz_mem");
+        fd = open(path.c_str(),O_CREAT|O_RDWR|O_TRUNC,S_IRWXU|S_IRWXG|S_IRWXO);
+        unlink(path.c_str());
+        verify(ftruncate(fd,RAM_SIZE + VRAM_SIZE +ARAM_SIZE)==0);
+#elif !defined(_ANDROID)
 		fd = shm_open("/dcnzorz_mem", O_CREAT | O_EXCL | O_RDWR,S_IREAD | S_IWRITE);
 		shm_unlink("/dcnzorz_mem");
 		if (fd==-1)
@@ -570,6 +567,7 @@ error:
 
 		u32 sz= 512*1024*1024 + sizeof(Sh4RCB) + ARAM_SIZE + 0x10000;
 		void* rv=mmap(0, sz, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+		verify(rv != NULL);
 		munmap(rv,sz);
 		return (u8*)rv + 0x10000 - unat(rv)%0x10000;//align to 64 KB (Needed for linaro mmap not to extend to next region)
 	}
@@ -583,6 +581,11 @@ void _vmem_bm_pagefail(void** ptr,u32 PAGE_SZ);
 u32 pagecnt;
 void _vmem_bm_reset()
 {
+	#if HOST_OS == OS_DARWIN
+		//On iOS we allways allocate all of the mapping table
+		mprotect(p_sh4rcb, sizeof(p_sh4rcb->fpcb), PROT_READ | PROT_WRITE);
+		return;
+	#endif
 	pagecnt=0;
 
 #if HOST_OS==OS_WINDOWS
@@ -590,8 +593,12 @@ void _vmem_bm_reset()
 #else
 	mprotect(p_sh4rcb, sizeof(p_sh4rcb->fpcb), PROT_NONE);
 	madvise(p_sh4rcb,sizeof(p_sh4rcb->fpcb),MADV_DONTNEED);
+    #ifdef MADV_REMOVE
 	madvise(p_sh4rcb,sizeof(p_sh4rcb->fpcb),MADV_REMOVE);
-	//madvise(p_sh4rcb,sizeof(p_sh4rcb->fpcb),MADV_FREE);
+    #else
+    //OSX, IOS
+    madvise(p_sh4rcb,sizeof(p_sh4rcb->fpcb),MADV_FREE);
+    #endif
 #endif
 
 	printf("Freeing fpcb\n");
@@ -599,7 +606,7 @@ void _vmem_bm_reset()
 
 bool BM_LockedWrite(u8* address)
 {
-#if !defined(HOST_NO_REC)
+#if FEAT_SHREC != DYNAREC_NONE
 	u32 addr=address-(u8*)p_sh4rcb->fpcb;
 
 	address=(u8*)p_sh4rcb->fpcb+ (addr&~PAGE_MASK);
@@ -631,6 +638,10 @@ bool _vmem_reserve()
 	verify((sizeof(Sh4RCB)%PAGE_SIZE)==0);
 
 	virt_ram_base=(u8*)_nvmem_alloc_mem();
+
+	if (virt_ram_base==0)
+		return false;
+	
 	p_sh4rcb=(Sh4RCB*)virt_ram_base;
 
 #if HOST_OS==OS_WINDOWS
@@ -644,9 +655,6 @@ bool _vmem_reserve()
 #endif
 	virt_ram_base+=sizeof(Sh4RCB);
 
-	if (virt_ram_base==0)
-		return false;
-	
 	//Area 0
 	//[0x00000000 ,0x00800000) -> unused
 	unused_buffer(0x00000000,0x00800000);

@@ -28,7 +28,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Vibrator;
@@ -279,21 +278,23 @@ public class FileBrowser extends Fragment {
 	}
 	
 	private void browseStorage(boolean images) {
-		HashSet<String> extStorage = FileBrowser.getExternalMounts();
-		if (extStorage != null && !extStorage.isEmpty()) {
-			for (Iterator<String> sd = extStorage.iterator(); sd.hasNext();) {
-				String sdCardPath = sd.next().replace("mnt/media_rw", "storage");
-				if (!sdCardPath.equals(sdcard.getAbsolutePath())) {
-					if (new File(sdCardPath).canRead()) {
-						navigate(new File(sdCardPath));
-						return;
-					}
-				}
-			}
-		}
 		if (images) {
 			navigate(new File(home_directory));
 		} else {
+			if (game_directory.equals(sdcard.getAbsolutePath().replace("emulated/0", "sdcard0"))) {
+				HashSet<String> extStorage = FileBrowser.getExternalMounts();
+				if (extStorage != null && !extStorage.isEmpty()) {
+					for (Iterator<String> sd = extStorage.iterator(); sd.hasNext();) {
+						String sdCardPath = sd.next().replace("mnt/media_rw", "storage");
+						if (!sdCardPath.equals(sdcard.getAbsolutePath())) {
+							if (new File(sdCardPath).canRead()) {
+								navigate(new File(sdCardPath));
+								return;
+							}
+						}
+					}
+				}
+			}
 			navigate(new File(game_directory));
 		}
 	}
@@ -352,7 +353,7 @@ public class FileBrowser extends Fragment {
 		}
 
 		final View headerView = parentActivity.getLayoutInflater().inflate(
-				R.layout.app_list_item, null, false);
+				R.layout.head_list_item, null, false);
 		((ImageView) headerView.findViewById(R.id.item_icon))
 				.setImageResource(R.drawable.open_folder);
 		((TextView) headerView.findViewById(R.id.item_name))
@@ -367,45 +368,18 @@ public class FileBrowser extends Fragment {
 		final View childview = parentActivity.getLayoutInflater().inflate(
 				R.layout.app_list_item, null, false);
 		
-		final XMLParser xmlParser = new XMLParser(game, index, mPrefs);
-		xmlParser.setViewParent(parentActivity, childview);
+		XMLParser xmlParser = new XMLParser(game, index, mPrefs);
+		xmlParser.setViewParent(parentActivity, childview, mCallback);
 		orig_bg = childview.getBackground();
 
 		childview.findViewById(R.id.childview).setOnClickListener(
 				new OnClickListener() {
 					public void onClick(View view) {
 						if (isGame) {
-						vib.vibrate(50);
-						if (mPrefs.getBoolean(Config.pref_gamedetails, false)) {
-							final AlertDialog.Builder builder = new AlertDialog.Builder(parentActivity);
-							builder.setCancelable(true);
-							builder.setTitle(getString(R.string.game_details,
-									xmlParser.getGameTitle()));
-							builder.setMessage(xmlParser.game_details.get(index));
-							builder.setIcon(xmlParser.getGameIcon());
-							builder.setPositiveButton("Close",
-									new DialogInterface.OnClickListener() {
-										public void onClick(DialogInterface dialog, int which) {
-											dialog.dismiss();
-											return;
-										}
-									});
-							builder.setPositiveButton("Launch",
-									new DialogInterface.OnClickListener() {
-										public void onClick(DialogInterface dialog, int which) {
-											dialog.dismiss();
-											mCallback.onGameSelected(game != null ? Uri
-													.fromFile(game) : Uri.EMPTY);
-											vib.vibrate(250);
-											return;
-										}
-									});
-							builder.create().show();
-						} else {
+							vib.vibrate(50);
 							mCallback.onGameSelected(game != null ? Uri
 									.fromFile(game) : Uri.EMPTY);
 							vib.vibrate(250);
-						}
 						} else {
 							vib.vibrate(50);
 							mCallback.onFolderSelected(game != null ? Uri
@@ -464,7 +438,7 @@ public class FileBrowser extends Fragment {
 		Collections.addAll(list, flist);
 
 		for (final File file : list) {
-			if (file != null && !file.isDirectory())
+			if (file != null && !file.isDirectory() && !file.getAbsolutePath().equals("/data"))
 				continue;
 			final View childview = parentActivity.getLayoutInflater().inflate(
 					R.layout.app_list_item, null, false);
