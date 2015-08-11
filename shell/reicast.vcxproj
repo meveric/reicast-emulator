@@ -187,6 +187,7 @@
     <ClCompile Include="..\core\rend\gles\gldraw.cpp" />
     <ClCompile Include="..\core\rend\gles\gles.cpp" />
     <ClCompile Include="..\core\rend\gles\gltex.cpp" />
+    <ClCompile Include="..\core\rend\soft\softrend.cpp" />
     <ClCompile Include="..\core\rend\TexCache.cpp" />
     <ClCompile Include="..\core\stdclass.cpp" />
     <ClCompile Include="..\core\webui\server.cpp" />
@@ -399,18 +400,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\WorkDir\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\generated\objs</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Fast|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\WorkDir\</OutDir>
+    <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
+    <IntDir>$(Platform)\$(Configuration)\generated\objs</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Slow|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\WorkDir\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\generated\objs</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Slow|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\WorkDir\</OutDir>
+    <TargetName>$(ProjectName)_$(Platform)_$(Configuration)</TargetName>
+    <IntDir>$(Platform)\$(Configuration)\generated\objs</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Fast|Win32'">
     <ClCompile>

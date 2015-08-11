@@ -4,6 +4,7 @@
 //initialse Emu
 #include "types.h"
 #include "oslib/oslib.h"
+#include "oslib/audiostream.h"
 #include "hw/mem/_vmem.h"
 #include "stdclass.h"
 #include "cfg/cfg.h"
@@ -128,17 +129,16 @@ void plugins_Reset(bool Manual)
 	//libExtDevice_Reset(Manual);
 }
 
+#if !defined(TARGET_NO_WEBUI)
 
 void* webui_th(void* p)
 {
-	#if (HOST_OS == OS_WINDOWS || HOST_OS == OS_LINUX)  && !defined(TARGET_PANDORA) && defined(WEBUI)
-		webui_start();
-	#endif
-
+	webui_start();
 	return 0;
 }
 
 cThread webui_thd(&webui_th,0);
+#endif
 
 int dc_init(int argc,wchar* argv[])
 {
@@ -151,7 +151,9 @@ int dc_init(int argc,wchar* argv[])
 		return -1;
 	}
 
+#if !defined(TARGET_NO_WEBUI)
 	webui_thd.Start();
+#endif
 
 	if(ParseCommandLine(argc,argv))
 	{
@@ -196,7 +198,6 @@ int dc_init(int argc,wchar* argv[])
 		printf("Using Interpreter\n");
 	}
 	
-	  void InitAudio();
   InitAudio();
 
 	sh4_cpu.Init();

@@ -3,12 +3,14 @@
 
 
 #ifdef GLES
-#ifdef TARGET_IPHONE //apple-specific ogles2 headers
+#if defined(TARGET_IPHONE) //apple-specific ogles2 headers
 //#include <APPLE/egl.h>
 #include <OpenGLES/ES2/gl.h>
 #include <OpenGLES/ES2/glext.h>
 #else
+#if !defined(TARGET_NACL32)
 #include <EGL/egl.h>
+#endif
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #endif
@@ -22,7 +24,11 @@
 #endif
 
 #else
+#if HOST_OS == OS_DARWIN
+    #include <OpenGL/gl3.h>
+#else
 	#include <GL3/gl3w.h>
+#endif
 #endif
 
 
@@ -57,7 +63,7 @@ struct PipelineShader
 
 struct gl_ctx
 {
-#if defined(GLES) && HOST_OS != OS_DARWIN
+#if defined(GLES) && HOST_OS != OS_DARWIN && !defined(TARGET_NACL32)
 	struct
 	{
 		EGLNativeWindowType native_wind;
@@ -97,7 +103,7 @@ struct gl_ctx
 
 extern gl_ctx gl;
 
-GLuint GetTexture(TSP tsp,TCW tcw);
+GLuint gl_GetTexture(TSP tsp,TCW tcw);
 void CollectCleanup();
 void DoCleanup();
 
