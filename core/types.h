@@ -695,6 +695,11 @@ struct settings_t
 	} pvr;
 
 	struct {
+		char keyboard[512];
+		char joystick[512];
+	} system;
+
+	struct {
 		bool SerialConsole;
 	} debug;
 

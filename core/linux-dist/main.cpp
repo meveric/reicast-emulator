@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include "hw/sh4/dyna/blockmanager.h"
 #include <unistd.h>
+#endif
 
 #if defined(TARGET_EMSCRIPTEN)
 	#include <emscripten.h>
@@ -142,12 +143,21 @@ void SetupInput()
 		lt[port]=0;
 	}
 #if HOST_OS != OS_DARWIN && !defined(TARGET_EMSCRIPTEN)
-	if (true) {
+	const char* device = "/dev/input/event0";
+	cfgLoadStr("config","system.keyboard",settings.system.keyboard,"null");
+	printf("Keyboard = ",settings.system.keyboard, "\n");
+	if(strcmp(settings.system.keyboard,"null")!=0)
+	{
+		device = settings.system.keyboard;
+	}
+	else
+	{
 		#ifdef TARGET_PANDORA
 		const char* device = "/dev/input/event4";
 		#else
 		const char* device = "/dev/event2";
 		#endif
+	}
 		char name[256]= "Unknown";
 
 		if ((kbfd = open(device, O_RDONLY)) > 0) {
@@ -161,10 +171,18 @@ void SetupInput()
 		}
 		else
 			perror("evdev open");
-	}
 
 	// Open joystick device
-	JoyFD = open("/dev/input/js0",O_RDONLY);
+	cfgLoadStr("config","system.joystick",settings.system.joystick,"null");
+	printf("Joystick = ", settings.system.joystick, "\n");
+	if(strcmp(settings.system.joystick,"null")!=0)
+	{
+		JoyFD = open(settings.system.joystick,O_RDONLY);
+	}
+	else
+	{
+		JoyFD = open("/dev/input/js0",O_RDONLY);
+	}
 	
 	if(JoyFD>=0)
 	{
@@ -183,6 +201,12 @@ void SetupInput()
 		printf("SDK: Found '%s' joystick with %d axis and %d buttons\n",Name,AxisCount,ButtonCount);
 
 		if (strcmp(Name,"Microsoft X-Box 360 pad")==0)
+		{
+			JMapBtn=JMapBtn_360;
+			JMapAxis=JMapAxis_360;
+			printf("Using Xbox 360 map\n");
+		}
+		if (strcmp(Name,"Xbox 360 Wireless Receiver")==0)
 		{
 			JMapBtn=JMapBtn_360;
 			JMapAxis=JMapAxis_360;
@@ -284,6 +308,45 @@ bool HandleKb(u32 port) {
 	if (keys[11]) lt[port]=255;
 	
 	return true;
+
+	#elif defined(ODROID)
+	static int keys[13];
+	while(read(kbfd,&ie,sizeof(ie))==sizeof(ie)) {
+		if (ie.type=EV_KEY)
+		//printf("type %i key %i state %i\n", ie.type, ie.code, ie.value);
+		switch (ie.code) {
+			case KEY_SPACE:		keys[0]=ie.value; break;
+			case KEY_UP:		keys[1]=ie.value; break;
+			case KEY_DOWN:		keys[2]=ie.value; break;
+			case KEY_LEFT:		keys[3]=ie.value; break;
+			case KEY_RIGHT:		keys[4]=ie.value; break;
+			case KEY_Z:		keys[5]=ie.value; break;
+			case KEY_X:		keys[6]=ie.value; break;
+			case KEY_A:		keys[7]=ie.value; break;
+			case KEY_S:		keys[8]=ie.value; break;
+			case KEY_ENTER:		keys[9]=ie.value; break;
+			case KEY_ESC:		keys[10]=ie.value; break;
+			case KEY_Q:		keys[11]=ie.value; break;
+			case KEY_W:		keys[12]=ie.value; break;
+		}
+	}
+
+	if (keys[0]) { kcode[port] &= ~Btn_C; }
+	if (keys[5]) { kcode[port] &= ~Btn_A; }
+	if (keys[6]) { kcode[port] &= ~Btn_B; }
+	if (keys[7]) { kcode[port] &= ~Btn_Y; }
+	if (keys[8]) { kcode[port] &= ~Btn_X; }
+	if (keys[1]) { kcode[port] &= ~DPad_Up;    }
+	if (keys[2]) { kcode[port] &= ~DPad_Down;  }
+	if (keys[3]) { kcode[port] &= ~DPad_Left;  }
+	if (keys[4]) { kcode[port] &= ~DPad_Right; }
+	if (keys[9]) { kcode[port] &= ~Btn_Start; }
+	if (keys[10]){ die("death by escape key"); }
+	if (keys[11]) rt[port]=255;
+	if (keys[12]) lt[port]=255;
+
+	return true;
+
 	#else
   	while(read(kbfd,&ie,sizeof(ie))==sizeof(ie)) {
 		printf("type %i key %i state %i\n", ie.type, ie.code, ie.value);
@@ -448,7 +511,7 @@ return;
 		if ('D' == key) { kcode[port] &= ~DPad_Left;  }
 		if ('C' == key) { kcode[port] &= ~DPad_Right; }
 #else
- 
+
 #ifdef TARGET_PANDORA
 		if ('q' == key){ die("death by escape key"); } 
 #endif
@@ -641,14 +704,17 @@ void os_CreateWindow()
 			// Creates the X11 window
 			x11Window = XCreateWindow( x11Display, RootWindow(x11Display, x11Screen), (ndcid%3)*640, (ndcid/3)*480, width, height,
 				0, depth, InputOutput, x11Visual->visual, ui32Mask, &sWA);
-			#ifdef TARGET_PANDORA
+			if (height==-1)
+			{
 				// fullscreen
 				Atom wmState = XInternAtom(x11Display, "_NET_WM_STATE", False);
 				Atom wmFullscreen = XInternAtom(x11Display, "_NET_WM_STATE_FULLSCREEN", False);
 				XChangeProperty(x11Display, x11Window, wmState, XA_ATOM, 32, PropModeReplace, (unsigned char *)&wmFullscreen, 1);
 				
 				XMapRaised(x11Display, x11Window);
-			#else
+			}
+			else
+			{
 				XMapWindow(x11Display, x11Window);
 
 				#if !defined(GLES)
@@ -678,7 +744,7 @@ void os_CreateWindow()
 						die("Failed to create GL3.1 context\n");
 					}
 				#endif
-			#endif
+			}
 			XFlush(x11Display);
 
 			
@@ -825,11 +891,11 @@ int main(int argc, wchar* argv[])
 
 	common_linux_setup();
 
-	SetupInput();
-	
 	settings.profile.run_counts=0;
 		
 	dc_init(argc,argv);
+
+	SetupInput();
 
 #if !defined(TARGET_EMSCRIPTEN)
 	dc_run();
